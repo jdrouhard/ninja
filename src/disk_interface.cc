@@ -26,6 +26,8 @@
 #include <sstream>
 #include <windows.h>
 #include <direct.h>  // _mkdir
+#else
+#include <sys/time.h>
 #endif
 
 #include "metrics.h"
@@ -58,16 +60,6 @@ int MakeDir(const string& path) {
 }
 
 #ifdef _WIN32
-TimeStamp TimeStampFromFileTime(const FILETIME& filetime) {
-  // FILETIME is in 100-nanosecond increments since the Windows epoch.
-  // We don't much care about epoch correctness but we do want the
-  // resulting value to fit in a 64-bit integer.
-  uint64_t mtime = ((uint64_t)filetime.dwHighDateTime << 32) |
-    ((uint64_t)filetime.dwLowDateTime);
-  // 1600 epoch -> 2000 epoch (subtract 400 years).
-  return (TimeStamp)mtime - 12622770400LL * (1000000000LL / 100);
-}
-
 TimeStamp StatSingleFile(const string& path, string* err) {
   WIN32_FILE_ATTRIBUTE_DATA attrs;
   if (!GetFileAttributesEx(path.c_str(), GetFileExInfoStandard, &attrs)) {
@@ -273,3 +265,22 @@ void RealDiskInterface::AllowStatCache(bool allow) {
     cache_.clear();
 #endif
 }
+
+TimeStamp RealDiskInterface::GetCurrentTimeAsFileSystemTime() {
+#ifdef _WIN32
+  FILETIME sys_time;
+  GetSystemTimeAsFileTime(sys_time);
+  return TimeStampFromFileTime(sys_time);
+#elif defined(_POSIX_TIMERS) && (_POSIX_TIMERS > 0)
+  timespec ts;
+  if (clock_gettime(CLOCK_REALTIME, &ts) < 0)
+    return -1;
+  return (int64_t)ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#else
+  timeval tv;
+  if (gettimeofday(&tv, NULL) < 0)
+    return -1;
+  return (int64_t)tv.tv_sec * 1000000000LL + tv.tv_usec * 1000;
+#endif
+}
+

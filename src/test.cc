@@ -193,6 +193,10 @@ int VirtualFileSystem::RemoveFile(const string& path) {
   }
 }
 
+TimeStamp VirtualFileSystem::GetCurrentTimeAsFileSystemTime() {
+  return now_;
+}
+
 void ScopedTempDir::CreateAndEnter(const string& name) {
   // First change into the system temp dir and save it for cleanup.
   start_dir_ = GetSystemTempDir();

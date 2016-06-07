@@ -733,6 +733,8 @@ bool Builder::StartEdge(Edge* edge, string* err) {
       return false;
   }
 
+  edge->build_time_ = disk_interface_->GetCurrentTimeAsFileSystemTime();
+
   // start command computing and run it
   if (!command_runner_->StartCommand(edge)) {
     err->assign("command '" + edge->EvaluateCommand() + "' failed.");

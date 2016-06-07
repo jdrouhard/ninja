@@ -566,6 +566,14 @@ bool FakeCommandRunner::StartCommand(Edge* edge) {
              edge->rule().name() == "interrupt" ||
              edge->rule().name() == "console") {
     // Don't do anything.
+  } else if (edge->rule().name() == "long-cc") {
+    for (vector<Node*>::iterator out = edge->outputs_.begin();
+        out != edge->outputs_.end(); ++out) {
+      fs_->Tick();
+      fs_->Tick();
+      fs_->Tick();
+      fs_->Create((*out)->path(), "");
+    }
   } else {
     printf("unknown command\n");
     return false;
@@ -1494,6 +1502,56 @@ TEST_F(BuildWithLogTest, RestatMissingInput) {
   log_entry = build_log_.LookupByOutput("out1");
   ASSERT_TRUE(NULL != log_entry);
   ASSERT_EQ(restat_mtime, log_entry->mtime);
+}
+
+TEST_F(BuildWithLogTest, TestBuildTime) {
+  ASSERT_NO_FATAL_FAILURE(AssertParse(&state_,
+"rule long-cc\n"
+"  command = long-cc\n"
+"build out: long-cc in\n"));
+
+  fs_.Create("in", "");
+
+  // Run the build, out1 gets built
+  TimeStamp build_time = fs_.Tick();
+  string err;
+  EXPECT_TRUE(builder_.AddTarget("out", &err));
+  ASSERT_EQ("", err);
+  EXPECT_TRUE(builder_.Build(&err));
+  ASSERT_EQ(1u, command_runner_.commands_ran_.size());
+
+  // Set the input file's mtime to something newer than when the build started,
+  // but before the output's actual mtime
+  fs_.files_["in"].mtime = build_time+1;
+  ASSERT_TRUE(fs_.files_["in"].mtime < fs_.files_["out"].mtime);
+
+  // See that an entry in the logfile is created, capturing
+  // the right build time
+  BuildLog::LogEntry* log_entry = build_log_.LookupByOutput("out");
+  ASSERT_TRUE(NULL != log_entry);
+  ASSERT_EQ(build_time, log_entry->build_time);
+
+  // Trigger the build again - "out" should rebuild despite having a newer mtime
+  // than "in"
+  TimeStamp second_build_time = fs_.Tick();
+  command_runner_.commands_ran_.clear();
+  state_.Reset();
+  EXPECT_TRUE(builder_.AddTarget("out", &err));
+  ASSERT_EQ("", err);
+  EXPECT_TRUE(builder_.Build(&err));
+  ASSERT_EQ(1u, command_runner_.commands_ran_.size());
+
+  // Check that the logfile entry is still correct
+  log_entry = build_log_.LookupByOutput("out");
+  ASSERT_TRUE(NULL != log_entry);
+  ASSERT_EQ(second_build_time, log_entry->build_time);
+
+  // And a subsequent run should not have any work to do
+  command_runner_.commands_ran_.clear();
+  state_.Reset();
+  EXPECT_TRUE(builder_.AddTarget("out", &err));
+  ASSERT_EQ("", err);
+  EXPECT_TRUE(builder_.AlreadyUpToDate());
 }
 
 struct BuildDryRun : public BuildWithLogTest {

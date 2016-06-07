@@ -135,7 +135,7 @@ struct Edge {
   };
 
   Edge() : rule_(NULL), pool_(NULL), env_(NULL), mark_(VisitNone),
-           outputs_ready_(false), deps_missing_(false),
+           outputs_ready_(false), deps_missing_(false), build_time_(0),
            implicit_deps_(0), order_only_deps_(0), implicit_outs_(0) {}
 
   /// Return true if all inputs' in-edges are ready.
@@ -165,6 +165,7 @@ struct Edge {
   VisitMark mark_;
   bool outputs_ready_;
   bool deps_missing_;
+  TimeStamp build_time_;
 
   const Rule& rule() const { return *rule_; }
   Pool* pool() const { return pool_; }

@@ -57,6 +57,7 @@ struct BuildLog {
     int start_time;
     int end_time;
     TimeStamp mtime;
+    TimeStamp build_time;
 
     static uint64_t HashCommand(StringPiece command);
 
@@ -69,7 +70,7 @@ struct BuildLog {
 
     explicit LogEntry(const string& output);
     LogEntry(const string& output, uint64_t command_hash,
-             int start_time, int end_time, TimeStamp restat_mtime);
+             int start_time, int end_time, TimeStamp restat_mtime, TimeStamp build_time);
   };
 
   /// Lookup a previously-run command by its output path.

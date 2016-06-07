@@ -21,6 +21,7 @@
 #include <stdint.h>
 #endif
 
+#include "timestamp.h"
 #include <string>
 #include <vector>
 using namespace std;
@@ -106,6 +107,9 @@ string GetLastErrorString();
 
 /// Calls Fatal() with a function name and GetLastErrorString.
 NORETURN void Win32Fatal(const char* function);
+
+TimeStamp TimeStampFromFileTime(const FILETIME& filetime);
+
 #endif
 
 #endif  // NINJA_UTIL_H_

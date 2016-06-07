@@ -200,6 +200,21 @@ TEST_F(DiskInterfaceTest, RemoveFile) {
   EXPECT_EQ(1, disk_.RemoveFile("does not exist"));
 }
 
+TEST_F(DiskInterfaceTest, GetCurrentTimeAsFileSystemTime) {
+  string err;
+  ASSERT_TRUE(Touch("file"));
+  TimeStamp mtime = disk_.Stat("file", &err);
+
+  EXPECT_GT(mtime, 1);
+  EXPECT_EQ("", err);
+
+  TimeStamp current_time = disk_.GetCurrentTimeAsFileSystemTime();
+  EXPECT_GE(current_time, mtime);
+
+  TimeStamp difference = current_time - mtime;
+  ASSERT_TRUE(difference < 1000000000LL); // test shouldn't take more than one second
+}
+
 struct StatTest : public StateTestWithBuiltinRules,
                   public DiskInterface {
   StatTest() : scan_(&state_, NULL, NULL, this) {}
@@ -219,6 +234,10 @@ struct StatTest : public StateTestWithBuiltinRules,
     return NotFound;
   }
   virtual int RemoveFile(const string& path) {
+    assert(false);
+    return 0;
+  }
+  virtual TimeStamp GetCurrentTimeAsFileSystemTime() {
     assert(false);
     return 0;
   }

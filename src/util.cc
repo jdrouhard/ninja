@@ -440,6 +440,17 @@ string GetLastErrorString() {
 void Win32Fatal(const char* function) {
   Fatal("%s: %s", function, GetLastErrorString().c_str());
 }
+
+TimeStamp TimeStampFromFileTime(const FILETIME& filetime) {
+  // FILETIME is in 100-nanosecond increments since the Windows epoch.
+  // We don't much care about epoch correctness but we do want the
+  // resulting value to fit in a 64-bit integer.
+  uint64_t mtime = ((uint64_t)filetime.dwHighDateTime << 32) |
+    ((uint64_t)filetime.dwLowDateTime);
+  // 1600 epoch -> 2000 epoch (subtract 400 years).
+  return (TimeStamp)mtime - 12622770400LL * (1000000000LL / 100);
+}
+
 #endif
 
 bool islatinalpha(int c) {
